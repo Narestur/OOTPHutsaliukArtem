@@ -1,0 +1,14 @@
+d:\Панель\Інше\OOP\lr1\bin\Debug\net9.0\lr1.exe
+d:\Панель\Інше\OOP\lr1\bin\Debug\net9.0\lr1.deps.json
+d:\Панель\Інше\OOP\lr1\bin\Debug\net9.0\lr1.runtimeconfig.json
+d:\Панель\Інше\OOP\lr1\bin\Debug\net9.0\lr1.dll
+d:\Панель\Інше\OOP\lr1\bin\Debug\net9.0\lr1.pdb
+d:\Панель\Інше\OOP\lr1\obj\Debug\net9.0\lr1.GeneratedMSBuildEditorConfig.editorconfig
+d:\Панель\Інше\OOP\lr1\obj\Debug\net9.0\lr1.AssemblyInfoInputs.cache
+d:\Панель\Інше\OOP\lr1\obj\Debug\net9.0\lr1.AssemblyInfo.cs
+d:\Панель\Інше\OOP\lr1\obj\Debug\net9.0\lr1.csproj.CoreCompileInputs.cache
+d:\Панель\Інше\OOP\lr1\obj\Debug\net9.0\lr1.dll
+d:\Панель\Інше\OOP\lr1\obj\Debug\net9.0\refint\lr1.dll
+d:\Панель\Інше\OOP\lr1\obj\Debug\net9.0\lr1.pdb
+d:\Панель\Інше\OOP\lr1\obj\Debug\net9.0\lr1.genruntimeconfig.cache
+d:\Панель\Інше\OOP\lr1\obj\Debug\net9.0\ref\lr1.dll
