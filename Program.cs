@@ -121,33 +121,50 @@ class Model3D : ICloneableModel
 }
 
 // Builder Pattern
+class Model
+{
+    private List<string> parts = new List<string>();
+    
+    public void AddPart(string part)
+    {
+        parts.Add(part);
+    }
+    
+    public void Show()
+    {
+        Console.WriteLine("Model contains: " + string.Join(", ", parts));
+    }
+}
+// Builder: Defines the interface for creating different parts of the Product object
 abstract class ModelBuilder
 {
-    protected Model3D model;
-    public void CreateNewModel(string name) => model = new Model3D(name);
+    protected Model model;
+    public void CreateNewModel() => model = new Model();
     public abstract void BuildMesh();
     public abstract void BuildTexture();
-    public Model3D GetModel() => model;
+    public Model GetModel() => model;
 }
 
+// ConcreteBuilder: Implements the Builder interface and creates a Product object
 class ConcreteModelBuilder : ModelBuilder
 {
     public override void BuildMesh()
     {
-        Console.WriteLine("Building mesh...");
+        model.AddPart("Mesh");
     }
-
+    
     public override void BuildTexture()
     {
-        Console.WriteLine("Applying texture...");
+        model.AddPart("Texture");
     }
 }
 
+// Director: Manages the building process
 class Director
 {
-    public void Construct(ModelBuilder builder, string name)
+    public void Construct(ModelBuilder builder)
     {
-        builder.CreateNewModel(name);
+        builder.CreateNewModel();
         builder.BuildMesh();
         builder.BuildTexture();
     }
@@ -179,8 +196,11 @@ class Program
         clonedModel.Display();
 
         // Builder Example
-        ConcreteModelBuilder builder = new ConcreteModelBuilder();
         Director director = new Director();
-        director.Construct(builder, "NewModel");
+        ModelBuilder builder = new ConcreteModelBuilder();
+        
+        director.Construct(builder);
+        Model model = builder.GetModel();
+        model.Show();
     }
 }
