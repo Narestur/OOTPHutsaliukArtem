@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 
-// Factory Pattern
+// Factory Method Pattern
 abstract class OptimizationTool
 {
     public abstract void Optimize();
@@ -37,112 +37,35 @@ abstract class ModelOptimizerFactory
 
 class PolygonReducerFactory : ModelOptimizerFactory
 {
-    public override OptimizationTool CreateOptimizer()
-    {
-        return new PolygonReducer();
-    }
+    public override OptimizationTool CreateOptimizer() => new PolygonReducer();
 }
 
 class RetopologyToolFactory : ModelOptimizerFactory
 {
-    public override OptimizationTool CreateOptimizer()
-    {
-        return new RetopologyTool();
-    }
+    public override OptimizationTool CreateOptimizer() => new RetopologyTool();
 }
 
 class UVUnwrapperFactory : ModelOptimizerFactory
 {
-    public override OptimizationTool CreateOptimizer()
-    {
-        return new UVUnwrapper();
-    }
+    public override OptimizationTool CreateOptimizer() => new UVUnwrapper();
 }
 
-// Abstract Factory Pattern
-abstract class MeshExporter
-{
-    public abstract void ExportMesh();
-}
+// Abstract Factory Pattern (3D Model Export Pipeline)
+abstract class MeshExporter { public abstract void ExportMesh(); }
+abstract class TextureExporter { public abstract void ExportTexture(); }
+abstract class MetadataExporter { public abstract void ExportMetadata(); }
 
-abstract class TextureExporter
-{
-    public abstract void ExportTexture();
-}
+class OBJMeshExporter : MeshExporter { public override void ExportMesh() => Console.WriteLine("Exporting OBJ mesh..."); }
+class OBJTextureExporter : TextureExporter { public override void ExportTexture() => Console.WriteLine("Exporting OBJ texture..."); }
+class OBJMetadataExporter : MetadataExporter { public override void ExportMetadata() => Console.WriteLine("Exporting OBJ metadata..."); }
 
-abstract class MetadataExporter
-{
-    public abstract void ExportMetadata();
-}
+class FBXMeshExporter : MeshExporter { public override void ExportMesh() => Console.WriteLine("Exporting FBX mesh..."); }
+class FBXTextureExporter : TextureExporter { public override void ExportTexture() => Console.WriteLine("Exporting FBX texture..."); }
+class FBXMetadataExporter : MetadataExporter { public override void ExportMetadata() => Console.WriteLine("Exporting FBX metadata..."); }
 
-// Concrete Exporters for OBJ
-class OBJMeshExporter : MeshExporter
-{
-    public override void ExportMesh()
-    {
-        Console.WriteLine("Exporting OBJ mesh...");
-    }
-}
+class STLMeshExporter : MeshExporter { public override void ExportMesh() => Console.WriteLine("Exporting STL mesh..."); }
+class STLMetadataExporter : MetadataExporter { public override void ExportMetadata() => Console.WriteLine("Exporting STL metadata..."); }
 
-class OBJTextureExporter : TextureExporter
-{
-    public override void ExportTexture()
-    {
-        Console.WriteLine("Exporting OBJ texture...");
-    }
-}
-
-class OBJMetadataExporter : MetadataExporter
-{
-    public override void ExportMetadata()
-    {
-        Console.WriteLine("Exporting OBJ metadata...");
-    }
-}
-
-// Concrete Exporters for FBX
-class FBXMeshExporter : MeshExporter
-{
-    public override void ExportMesh()
-    {
-        Console.WriteLine("Exporting FBX mesh...");
-    }
-}
-
-class FBXTextureExporter : TextureExporter
-{
-    public override void ExportTexture()
-    {
-        Console.WriteLine("Exporting FBX texture...");
-    }
-}
-
-class FBXMetadataExporter : MetadataExporter
-{
-    public override void ExportMetadata()
-    {
-        Console.WriteLine("Exporting FBX metadata...");
-    }
-}
-
-// Concrete Exporters for STL (No textures)
-class STLMeshExporter : MeshExporter
-{
-    public override void ExportMesh()
-    {
-        Console.WriteLine("Exporting STL mesh...");
-    }
-}
-
-class STLMetadataExporter : MetadataExporter
-{
-    public override void ExportMetadata()
-    {
-        Console.WriteLine("Exporting STL metadata...");
-    }
-}
-
-// Abstract Factory for Export Pipelines
 abstract class ExportPipelineFactory
 {
     public abstract MeshExporter CreateMeshExporter();
@@ -150,7 +73,6 @@ abstract class ExportPipelineFactory
     public abstract MetadataExporter CreateMetadataExporter();
 }
 
-// Concrete Factories for Export Pipelines
 class OBJExportFactory : ExportPipelineFactory
 {
     public override MeshExporter CreateMeshExporter() => new OBJMeshExporter();
@@ -168,8 +90,67 @@ class FBXExportFactory : ExportPipelineFactory
 class STLExportFactory : ExportPipelineFactory
 {
     public override MeshExporter CreateMeshExporter() => new STLMeshExporter();
-    public override TextureExporter? CreateTextureExporter() => null;
+    public override TextureExporter? CreateTextureExporter() => null; 
     public override MetadataExporter CreateMetadataExporter() => new STLMetadataExporter();
+}
+
+// Prototype Pattern
+interface ICloneableModel
+{
+    ICloneableModel Clone();
+}
+
+class Model3D : ICloneableModel
+{
+    public string Name { get; set; }
+    
+    public Model3D(string name)
+    {
+        Name = name;
+    }
+
+    public ICloneableModel Clone()
+    {
+        return new Model3D(Name);
+    }
+
+    public void Display()
+    {
+        Console.WriteLine($"Model: {Name}");
+    }
+}
+
+// Builder Pattern
+abstract class ModelBuilder
+{
+    protected Model3D model;
+    public void CreateNewModel(string name) => model = new Model3D(name);
+    public abstract void BuildMesh();
+    public abstract void BuildTexture();
+    public Model3D GetModel() => model;
+}
+
+class ConcreteModelBuilder : ModelBuilder
+{
+    public override void BuildMesh()
+    {
+        Console.WriteLine("Building mesh...");
+    }
+
+    public override void BuildTexture()
+    {
+        Console.WriteLine("Applying texture...");
+    }
+}
+
+class Director
+{
+    public void Construct(ModelBuilder builder, string name)
+    {
+        builder.CreateNewModel(name);
+        builder.BuildMesh();
+        builder.BuildTexture();
+    }
 }
 
 // Test Program
@@ -182,7 +163,7 @@ class Program
         OptimizationTool tool = factory.CreateOptimizer();
         tool.Optimize();
 
-        // Abstract Factory Example: 3D Model Export Pipeline
+        // Abstract Factory Example
         ExportPipelineFactory exportFactory = new OBJExportFactory();
         MeshExporter mesh = exportFactory.CreateMeshExporter();
         TextureExporter? texture = exportFactory.CreateTextureExporter();
@@ -191,5 +172,15 @@ class Program
         mesh.ExportMesh();
         texture?.ExportTexture();
         metadata.ExportMetadata();
+
+        // Prototype Example
+        Model3D originalModel = new Model3D("BaseModel");
+        Model3D clonedModel = (Model3D)originalModel.Clone();
+        clonedModel.Display();
+
+        // Builder Example
+        ConcreteModelBuilder builder = new ConcreteModelBuilder();
+        Director director = new Director();
+        director.Construct(builder, "NewModel");
     }
 }
