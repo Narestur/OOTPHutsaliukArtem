@@ -169,6 +169,190 @@ class Director
         builder.BuildTexture();
     }
 }
+interface ITextureGenerationStrategy
+{
+    void GenerateTexture();
+}
+
+class ProceduralTextureStrategy : ITextureGenerationStrategy
+{
+    public void GenerateTexture() => Console.WriteLine("Generating procedural texture...");
+}
+
+class AITextureStrategy : ITextureGenerationStrategy
+{
+    public void GenerateTexture() => Console.WriteLine("Generating AI-enhanced texture...");
+}
+
+class StandardTextureStrategy : ITextureGenerationStrategy
+{
+    public void GenerateTexture() => Console.WriteLine("Applying standard texture mapping...");
+}
+
+class TextureGenerator
+{
+    private ITextureGenerationStrategy _strategy;
+    public void SetStrategy(ITextureGenerationStrategy strategy) => _strategy = strategy;
+    public void ApplyTexture() => _strategy.GenerateTexture();
+}
+
+// Observer Pattern (Polygon and Performance Monitoring)
+interface IMonitor
+{
+    void Update(int polygonCount);
+}
+
+class PolygonCountMonitor : IMonitor
+{
+    public void Update(int polygonCount)
+    {
+        if (polygonCount > 50000)
+            Console.WriteLine("Warning: High polygon count detected!");
+    }
+}
+
+class MemoryUsageMonitor : IMonitor
+{
+    public void Update(int polygonCount)
+    {
+        Console.WriteLine($"Estimated memory usage: {polygonCount * 0.1} MB");
+    }
+}
+
+class ModelStatistics
+{
+    private List<IMonitor> _observers = new List<IMonitor>();
+    public void Attach(IMonitor observer) => _observers.Add(observer);
+    public void Detach(IMonitor observer) => _observers.Remove(observer);
+    public void Notify(int polygonCount)
+    {
+        foreach (var observer in _observers)
+            observer.Update(polygonCount);
+    }
+}
+
+// Command Interface\ 
+interface ICommand {
+    void Execute();
+    void Undo();
+}
+
+// Receiver: 3D Model
+class Model3Ds
+{
+    public string Name { get; }
+    private float position;
+    private float scale;
+    private float rotation;
+
+    public Model3Ds(string name)
+    {
+        Name = name;
+        position = 0;
+        scale = 1;
+        rotation = 0;
+    }
+
+    public void Move(float delta)
+    {
+        position += delta;
+        Console.WriteLine($"{Name} moved to position {position}");
+    }
+
+    public void Scale(float factor)
+    {
+        scale *= factor;
+        Console.WriteLine($"{Name} scaled to {scale}x");
+    }
+
+    public void Rotate(float degrees)
+    {
+        rotation += degrees;
+        Console.WriteLine($"{Name} rotated to {rotation} degrees");
+    }
+
+    public void Reset()
+    {
+        position = 0;
+        scale = 1;
+        rotation = 0;
+        Console.WriteLine($"{Name} reset to default state");
+    }
+}
+
+// Concrete Commands
+class MoveCommand : ICommand
+{
+    private Model3Ds model;
+    private float delta;
+
+    public MoveCommand(Model3Ds model, float delta)
+    {
+        this.model = model;
+        this.delta = delta;
+    }
+
+    public void Execute() => model.Move(delta);
+    public void Undo() => model.Move(-delta);
+}
+
+class ScaleCommand : ICommand
+{
+    private Model3Ds model;
+    private float factor;
+
+    public ScaleCommand(Model3Ds model, float factor)
+    {
+        this.model = model;
+        this.factor = factor;
+    }
+
+    public void Execute() => model.Scale(factor);
+    public void Undo() => model.Scale(1 / factor);
+}
+
+class RotateCommand : ICommand
+{
+    private Model3Ds model;
+    private float degrees;
+
+    public RotateCommand(Model3Ds model, float degrees)
+    {
+        this.model = model;
+        this.degrees = degrees;
+    }
+
+    public void Execute() => model.Rotate(degrees);
+    public void Undo() => model.Rotate(-degrees);
+}
+
+// Invoker: Command Manager
+class CommandManager
+{
+    private Stack<ICommand> history = new Stack<ICommand>();
+
+    public void ExecuteCommand(ICommand command)
+    {
+        command.Execute();
+        history.Push(command);
+    }
+
+    public void UndoLastCommand()
+    {
+        if (history.Count > 0)
+        {
+            ICommand lastCommand = history.Pop();
+            lastCommand.Undo();
+        }
+        else
+        {
+            Console.WriteLine("No commands to undo.");
+        }
+    }
+}
+
+
+
 
 // Test Program
 class Program
@@ -202,5 +386,31 @@ class Program
         director.Construct(builder);
         Model model = builder.GetModel();
         model.Show();
+
+        // Strategy Pattern Example
+        TextureGenerator generator = new TextureGenerator();
+        generator.SetStrategy(new AITextureStrategy());
+        generator.ApplyTexture();
+        
+        // Observer Pattern Example
+        ModelStatistics modelStats = new ModelStatistics();
+        modelStats.Attach(new PolygonCountMonitor());
+        modelStats.Attach(new MemoryUsageMonitor());
+        modelStats.Notify(60000);
+
+        Model3Ds model1 = new Model3Ds("ExampleModel");
+        CommandManager manager = new CommandManager();
+
+        ICommand move = new MoveCommand(model1, 5);
+        ICommand scale = new ScaleCommand(model1, 1.5f);
+        ICommand rotate = new RotateCommand(model1, 45);
+
+        manager.ExecuteCommand(move);
+        manager.ExecuteCommand(scale);
+        manager.ExecuteCommand(rotate);
+
+        Console.WriteLine("Undoing last action...");
+        manager.UndoLastCommand();
+        manager.UndoLastCommand();
     }
 }
