@@ -351,6 +351,86 @@ class CommandManager
     }
 }
 
+//--------------------------------------------------------------------------------------------------//
+//-------------------------------------------------4LR----------------------------------------------//
+//--------------------------------------------------------------------------------------------------//
+
+interface ICommand
+{
+    void Execute();
+    void Undo();
+}
+
+class ExtrudeCommand : ICommand
+{
+    public void Execute() => Console.WriteLine("Extruding geometry...");
+    public void Undo() => Console.WriteLine("Undoing extrusion...");
+}
+
+class ScaleCommand : ICommand
+{
+    public void Execute() => Console.WriteLine("Scaling model...");
+    public void Undo() => Console.WriteLine("Undoing scaling...");
+}
+
+class MergeCommand : ICommand
+{
+    public void Execute() => Console.WriteLine("Merging nodes...");
+    public void Undo() => Console.WriteLine("Undoing merge...");
+}
+
+class MacroCommand : ICommand
+{
+    private readonly List<ICommand> _commands = new List<ICommand>();
+    
+    public void AddCommand(ICommand command) => _commands.Add(command);
+    public void Execute()
+    {
+        Console.WriteLine("Executing macro command...");
+        foreach (var command in _commands)
+        {
+            command.Execute();
+        }
+    }
+    public void Undo()
+    {
+        Console.WriteLine("Undoing macro command...");
+        for (int i = _commands.Count - 1; i >= 0; i--)
+        {
+            _commands[i].Undo();
+        }
+    }
+}
+
+// Template Method Pattern
+abstract class GeometryTemplate
+{
+    public void Generate()
+    {
+        Initialize();
+        CreateBaseShape();
+        ApplyAIEnhancements();
+        FinalizeGeometry();
+    }
+
+    protected abstract void CreateBaseShape();
+    protected virtual void ApplyAIEnhancements() => Console.WriteLine("Applying AI-based refinements...");
+    protected virtual void Initialize() => Console.WriteLine("Initializing geometry generation...");
+    protected virtual void FinalizeGeometry() => Console.WriteLine("Finalizing geometry...");
+}
+
+class AICubeGenerator : GeometryTemplate
+{
+    protected override void CreateBaseShape() => Console.WriteLine("Generating AI-enhanced cube...");
+}
+
+class AISphereGenerator : GeometryTemplate
+{
+    protected override void CreateBaseShape() => Console.WriteLine("Generating AI-enhanced sphere...");
+}
+//--------------------------------------------------------------------------------------------------//
+//--------------------------------------------------------------------------------------------------//
+//--------------------------------------------------------------------------------------------------//
 
 
 
@@ -412,5 +492,21 @@ class Program
         Console.WriteLine("Undoing last action...");
         manager.UndoLastCommand();
         manager.UndoLastCommand();
+
+        // Macro Command Example
+        MacroCommand macroCommand = new MacroCommand();
+        macroCommand.AddCommand(new ExtrudeCommand());
+        macroCommand.AddCommand(new ScaleCommand());
+        macroCommand.AddCommand(new MergeCommand());
+        
+        macroCommand.Execute();
+        macroCommand.Undo();
+
+        // Template Method Example
+        GeometryTemplate cubeGenerator = new AICubeGenerator();
+        GeometryTemplate sphereGenerator = new AISphereGenerator();
+        
+        cubeGenerator.Generate();
+        sphereGenerator.Generate();
     }
 }
