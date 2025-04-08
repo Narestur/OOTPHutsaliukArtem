@@ -355,35 +355,35 @@ class CommandManager
 //-------------------------------------------------4LR----------------------------------------------//
 //--------------------------------------------------------------------------------------------------//
 
-interface ICommand
+interface I4Command
 {
     void Execute();
     void Undo();
 }
 
-class ExtrudeCommand : ICommand
+class ExtrudeCommand : I4Command
 {
     public void Execute() => Console.WriteLine("Extruding geometry...");
     public void Undo() => Console.WriteLine("Undoing extrusion...");
 }
 
-class ScaleCommand : ICommand
+class ScaleCommand4 : I4Command
 {
     public void Execute() => Console.WriteLine("Scaling model...");
     public void Undo() => Console.WriteLine("Undoing scaling...");
 }
 
-class MergeCommand : ICommand
+class MergeCommand : I4Command
 {
     public void Execute() => Console.WriteLine("Merging nodes...");
     public void Undo() => Console.WriteLine("Undoing merge...");
 }
 
-class MacroCommand : ICommand
+class MacroCommand : I4Command
 {
-    private readonly List<ICommand> _commands = new List<ICommand>();
+    private readonly List<I4Command> _commands = new List<I4Command>();
     
-    public void AddCommand(ICommand command) => _commands.Add(command);
+    public void AddCommand(I4Command command) => _commands.Add(command);
     public void Execute()
     {
         Console.WriteLine("Executing macro command...");
@@ -431,119 +431,128 @@ class AISphereGenerator : GeometryTemplate
 //--------------------------------------------------------------------------------------------------//
 //--------------------------------------------LR5---------------------------------------------------//
 //--------------------------------------------------------------------------------------------------//
-// Iterator Pattern
-interface IModelPartIterator
+interface IIterator<T>
 {
     bool HasNext();
-    ModelPart Next();
+    T Next();
 }
 
-class ModelPart
+class Model3DI
 {
     public string Name { get; set; }
-    public ModelPart(string name) => Name = name;
+    public Model3DI(string name) { Name = name; }
+    public void Display() => Console.WriteLine("Model: " + Name);
 }
 
-class ModelPartCollection
+interface IAggregate<T>
 {
-    private List<ModelPart> parts = new();
-
-    public void Add(ModelPart part) => parts.Add(part);
-    public IModelPartIterator CreateIterator() => new PartIterator(parts);
-
-    private class PartIterator : IModelPartIterator
-    {
-        private readonly List<ModelPart> _parts;
-        private int _index;
-
-        public PartIterator(List<ModelPart> parts)
-        {
-            _parts = parts;
-            _index = 0;
-        }
-
-        public bool HasNext() => _index < _parts.Count;
-        public ModelPart Next() => _parts[_index++];
-    }
+    IIterator<T> CreateIterator();
 }
 
+class ModelCollection : IAggregate<Model3DI>
+{
+    private List<Model3DI> models = new();
+    public void AddModel(Model3DI model) => models.Add(model);
+    public IIterator<Model3DI> CreateIterator() => new ModelIterator(models);
+}
+
+class ModelIterator : IIterator<Model3DI>
+{
+    private List<Model3DI> _models;
+    private int _index = 0;
+    public ModelIterator(List<Model3DI> models) { _models = models; }
+    public bool HasNext() => _index < _models.Count;
+    public Model3DI Next() => _models[_index++];
+}
+
+
+// ====================
 // State Pattern
-interface IModelState
+// ====================
+interface IState
 {
-    void Handle(ModelContext context);
+    void Handle(ModelEditor editor);
 }
 
-class ModelContext
+class ModelEditor
 {
-    public IModelState State { get; set; }
-    public void Request() => State.Handle(this);
+    private IState _state;
+    public void SetState(IState state) { _state = state; }
+    public void Request() { _state.Handle(this); }
 }
 
-class RawState : IModelState
+class IdleState : IState
 {
-    public void Handle(ModelContext context)
+    public void Handle(ModelEditor editor)
     {
-        Console.WriteLine("Model is in RAW state. Preparing for validation...");
-        context.State = new ValidatedState();
+        Console.WriteLine("Model is idle.");
+        editor.SetState(new EditingState());
     }
 }
 
-class ValidatedState : IModelState
+class EditingState : IState
 {
-    public void Handle(ModelContext context)
+    public void Handle(ModelEditor editor)
     {
-        Console.WriteLine("Model is VALIDATED. Proceeding to optimization...");
-        context.State = new OptimizedState();
+        Console.WriteLine("Model is being edited.");
+        editor.SetState(new PreviewState());
     }
 }
 
-class OptimizedState : IModelState
+class PreviewState : IState
 {
-    public void Handle(ModelContext context)
+    public void Handle(ModelEditor editor)
     {
-        Console.WriteLine("Model is OPTIMIZED. Ready for export.");
+        Console.WriteLine("Previewing model.");
+        editor.SetState(new SavedState());
     }
 }
 
+class SavedState : IState
+{
+    public void Handle(ModelEditor editor)
+    {
+        Console.WriteLine("Model has been saved.");
+        editor.SetState(new IdleState());
+    }
+}
+
+
+// ====================
 // Chain of Responsibility Pattern
-abstract class Validator
+// ====================
+abstract class Handler
 {
-    protected Validator next;
-    public void SetNext(Validator nextHandler) => next = nextHandler;
-    public abstract void Validate(Model3D model);
+    protected Handler? _next;
+    public void SetNext(Handler next) => _next = next;
+    public abstract void Handle(Model3DI model);
 }
 
-class GeometryValidator : Validator
+class MeshValidator : Handler
 {
-    public override void Validate(Model3D model)
+    public override void Handle(Model3DI model)
     {
-        Console.WriteLine("Validating geometry...");
-        next?.Validate(model);
+        Console.WriteLine("Validating mesh of " + model.Name);
+        _next?.Handle(model);
     }
 }
 
-class TextureValidator : Validator
+class TextureChecker : Handler
 {
-    public override void Validate(Model3D model)
+    public override void Handle(Model3DI model)
     {
-        Console.WriteLine("Validating textures...");
-        next?.Validate(model);
+        Console.WriteLine("Checking textures of " + model.Name);
+        _next?.Handle(model);
     }
 }
 
-class UVValidator : Validator
+class UVVerifier : Handler
 {
-    public override void Validate(Model3D model)
+    public override void Handle(Model3DI model)
     {
-        Console.WriteLine("Validating UV mapping...");
-        next?.Validate(model);
+        Console.WriteLine("Verifying UVs of " + model.Name);
+        _next?.Handle(model);
     }
-}
-
-class Model3D
-{
-    public string Name { get; set; }
-    public Model3D(string name) => Name = name;
 }
 
 
@@ -609,7 +618,7 @@ class Program
         // Macro Command Example
         MacroCommand macroCommand = new MacroCommand();
         macroCommand.AddCommand(new ExtrudeCommand());
-        macroCommand.AddCommand(new ScaleCommand());
+        macroCommand.AddCommand(new ScaleCommand4());
         macroCommand.AddCommand(new MergeCommand());
         
         macroCommand.Execute();
@@ -622,38 +631,25 @@ class Program
         cubeGenerator.Generate();
         sphereGenerator.Generate();
 
-        // Iterator Pattern
-        var modelParts = new ModelPartCollection();
-        modelParts.Add(new ModelPart("Head"));
-        modelParts.Add(new ModelPart("Body"));
-        modelParts.Add(new ModelPart("Legs"));
+        // Iterator
+        var collection = new ModelCollection();
+        collection.AddModel(new Model3DI("ModelA"));
+        collection.AddModel(new Model3DI("ModelB"));
+        var iterator = collection.CreateIterator();
+        while (iterator.HasNext()) iterator.Next().Display();
 
-        var iterator = modelParts.CreateIterator();
-        while (iterator.HasNext())
-        {
-            var part = iterator.Next();
-            Console.WriteLine($"Traversing: {part.Name}");
-        }
-
-        Console.WriteLine();
-
-        // State Pattern
-        var context = new ModelContext { State = new RawState() };
-        context.Request();
-        context.Request();
-        context.Request();
-
-        Console.WriteLine();
+        // State
+        var editor = new ModelEditor();
+        editor.SetState(new IdleState());
+        for (int i = 0; i < 4; i++) editor.Request();
 
         // Chain of Responsibility
-        var model = new Model3D("RobotModel");
-        var geo = new GeometryValidator();
-        var tex = new TextureValidator();
-        var uv = new UVValidator();
-
-        geo.SetNext(tex);
-        tex.SetNext(uv);
-
-        geo.Validate(model);
+        var modeL = new Model3DI("ComplexModel");
+        var mesH = new MeshValidator();
+        var texturE = new TextureChecker();
+        var uv = new UVVerifier();
+        mesH.SetNext(texturE);
+        texturE.SetNext(uv);
+        mesH.Handle(modeL);
     }
 }
