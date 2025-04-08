@@ -429,9 +429,122 @@ class AISphereGenerator : GeometryTemplate
     protected override void CreateBaseShape() => Console.WriteLine("Generating AI-enhanced sphere...");
 }
 //--------------------------------------------------------------------------------------------------//
+//--------------------------------------------LR5---------------------------------------------------//
 //--------------------------------------------------------------------------------------------------//
-//--------------------------------------------------------------------------------------------------//
+// Iterator Pattern
+interface IModelPartIterator
+{
+    bool HasNext();
+    ModelPart Next();
+}
 
+class ModelPart
+{
+    public string Name { get; set; }
+    public ModelPart(string name) => Name = name;
+}
+
+class ModelPartCollection
+{
+    private List<ModelPart> parts = new();
+
+    public void Add(ModelPart part) => parts.Add(part);
+    public IModelPartIterator CreateIterator() => new PartIterator(parts);
+
+    private class PartIterator : IModelPartIterator
+    {
+        private readonly List<ModelPart> _parts;
+        private int _index;
+
+        public PartIterator(List<ModelPart> parts)
+        {
+            _parts = parts;
+            _index = 0;
+        }
+
+        public bool HasNext() => _index < _parts.Count;
+        public ModelPart Next() => _parts[_index++];
+    }
+}
+
+// State Pattern
+interface IModelState
+{
+    void Handle(ModelContext context);
+}
+
+class ModelContext
+{
+    public IModelState State { get; set; }
+    public void Request() => State.Handle(this);
+}
+
+class RawState : IModelState
+{
+    public void Handle(ModelContext context)
+    {
+        Console.WriteLine("Model is in RAW state. Preparing for validation...");
+        context.State = new ValidatedState();
+    }
+}
+
+class ValidatedState : IModelState
+{
+    public void Handle(ModelContext context)
+    {
+        Console.WriteLine("Model is VALIDATED. Proceeding to optimization...");
+        context.State = new OptimizedState();
+    }
+}
+
+class OptimizedState : IModelState
+{
+    public void Handle(ModelContext context)
+    {
+        Console.WriteLine("Model is OPTIMIZED. Ready for export.");
+    }
+}
+
+// Chain of Responsibility Pattern
+abstract class Validator
+{
+    protected Validator next;
+    public void SetNext(Validator nextHandler) => next = nextHandler;
+    public abstract void Validate(Model3D model);
+}
+
+class GeometryValidator : Validator
+{
+    public override void Validate(Model3D model)
+    {
+        Console.WriteLine("Validating geometry...");
+        next?.Validate(model);
+    }
+}
+
+class TextureValidator : Validator
+{
+    public override void Validate(Model3D model)
+    {
+        Console.WriteLine("Validating textures...");
+        next?.Validate(model);
+    }
+}
+
+class UVValidator : Validator
+{
+    public override void Validate(Model3D model)
+    {
+        Console.WriteLine("Validating UV mapping...");
+        next?.Validate(model);
+    }
+}
+
+class Model3D
+{
+    public string Name { get; set; }
+    public Model3D(string name) => Name = name;
+}
 
 
 // Test Program
@@ -508,5 +621,39 @@ class Program
         
         cubeGenerator.Generate();
         sphereGenerator.Generate();
+
+        // Iterator Pattern
+        var modelParts = new ModelPartCollection();
+        modelParts.Add(new ModelPart("Head"));
+        modelParts.Add(new ModelPart("Body"));
+        modelParts.Add(new ModelPart("Legs"));
+
+        var iterator = modelParts.CreateIterator();
+        while (iterator.HasNext())
+        {
+            var part = iterator.Next();
+            Console.WriteLine($"Traversing: {part.Name}");
+        }
+
+        Console.WriteLine();
+
+        // State Pattern
+        var context = new ModelContext { State = new RawState() };
+        context.Request();
+        context.Request();
+        context.Request();
+
+        Console.WriteLine();
+
+        // Chain of Responsibility
+        var model = new Model3D("RobotModel");
+        var geo = new GeometryValidator();
+        var tex = new TextureValidator();
+        var uv = new UVValidator();
+
+        geo.SetNext(tex);
+        tex.SetNext(uv);
+
+        geo.Validate(model);
     }
 }
