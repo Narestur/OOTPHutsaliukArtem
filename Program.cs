@@ -555,6 +555,180 @@ class UVVerifier : Handler
     }
 }
 
+//--------------------------------------------------------------------------------------------------//
+//--------------------------------------------LR6---------------------------------------------------//
+//--------------------------------------------------------------------------------------------------//
+
+// INTERPRETER PATTERN
+interface AbstractExpression
+{
+    void Interpret(Context context);
+}
+
+class TerminalScaleExpression : AbstractExpression
+{
+    private float factor;
+    public TerminalScaleExpression(float factor) => this.factor = factor;
+
+    public void Interpret(Context context)
+    {
+        Console.WriteLine($"Scaling model by factor {factor}.");
+        context.Model.Scale(factor);
+    }
+}
+
+class TerminalRotateExpression : AbstractExpression
+{
+    private float angle;
+    public TerminalRotateExpression(float angle) => this.angle = angle;
+
+    public void Interpret(Context context)
+    {
+        Console.WriteLine($"Rotating model by {angle} degrees.");
+        context.Model.Rotate(angle);
+    }
+}
+
+class NonterminalSequenceExpression : AbstractExpression
+{
+    private List<AbstractExpression> expressions = new();
+    public void Add(AbstractExpression expression) => expressions.Add(expression);
+
+    public void Interpret(Context context)
+    {
+        foreach (var expr in expressions)
+            expr.Interpret(context);
+    }
+}
+
+class Context
+{
+    public string CommandText;
+    public NModel3D Model;
+    public Context(string commandText, NModel3D model)
+    {
+        CommandText = commandText;
+        Model = model;
+    }
+}
+
+class InterpreterClient
+{
+    public static void InterpretCommand(string command, NModel3D model)
+    {
+        Context context = new(command, model);
+        var expressions = new NonterminalSequenceExpression();
+
+        string[] tokens = command.Split();
+        for (int i = 0; i < tokens.Length; i++)
+        {
+            switch (tokens[i])
+            {
+                case "scale":
+                    expressions.Add(new TerminalScaleExpression(float.Parse(tokens[++i])));
+                    break;
+                case "rotate":
+                    expressions.Add(new TerminalRotateExpression(float.Parse(tokens[++i])));
+                    break;
+            }
+        }
+
+        expressions.Interpret(context);
+    }
+}
+
+// Dummy model class
+class NModel3D
+{
+    public string Name;
+    public NModel3D(string name) => Name = name;
+    public void Scale(float factor) => Console.WriteLine($"[Model {Name}] Scaled by {factor}.");
+    public void Rotate(float angle) => Console.WriteLine($"[Model {Name}] Rotated by {angle} degrees.");
+}
+
+// MEDIATOR PATTERN
+interface IMediator
+{
+    void Notify(Colleague sender, string ev);
+}
+
+abstract class Colleague
+{
+    protected IMediator mediator;
+    public void SetMediator(IMediator mediator) => this.mediator = mediator;
+}
+
+class ModelList : Colleague
+{
+    public void SelectModel(string modelName)
+    {
+        Console.WriteLine($"Model selected: {modelName}");
+        mediator.Notify(this, "ModelSelected");
+    }
+}
+
+class PropertyPanel : Colleague
+{
+    public void ShowProperties(string modelName)
+    {
+        Console.WriteLine($"Showing properties for {modelName}");
+    }
+}
+
+class Toolbar : Colleague
+{
+    public void ExecuteCommand(string command)
+    {
+        Console.WriteLine($"Executing toolbar command: {command}");
+        mediator.Notify(this, "CommandExecuted");
+    }
+}
+
+class ConcreteMediator : IMediator
+{
+    private ModelList modelList;
+    private PropertyPanel propertyPanel;
+    private Toolbar toolbar;
+    private string currentModel = "ModelA";
+
+    public ConcreteMediator(ModelList list, PropertyPanel panel, Toolbar bar)
+    {
+        modelList = list;
+        propertyPanel = panel;
+        toolbar = bar;
+
+        list.SetMediator(this);
+        panel.SetMediator(this);
+        bar.SetMediator(this);
+    }
+
+    public void Notify(Colleague sender, string ev)
+    {
+        if (sender is ModelList && ev == "ModelSelected")
+        {
+            propertyPanel.ShowProperties(currentModel);
+        }
+        else if (sender is Toolbar && ev == "CommandExecuted")
+        {
+            Console.WriteLine($"Applying command to {currentModel}...");
+        }
+    }
+}
+
+class UIMediatorClient
+{
+    public static void Run()
+    {
+        var modelList = new ModelList();
+        var propertyPanel = new PropertyPanel();
+        var toolbar = new Toolbar();
+        var mediator = new ConcreteMediator(modelList, propertyPanel, toolbar);
+
+        modelList.SelectModel("ModelA");
+        toolbar.ExecuteCommand("Delete");
+    }
+}
+
 
 // Test Program
 class Program
@@ -651,5 +825,13 @@ class Program
         mesH.SetNext(texturE);
         texturE.SetNext(uv);
         mesH.Handle(modeL);
+
+        Console.WriteLine("-- INTERPRETER --");
+        var Nmodel = new NModel3D("TestModel");
+        InterpreterClient.InterpretCommand("scale 2 rotate 90", Nmodel);
+
+        Console.WriteLine("\n-- MEDIATOR --");
+        UIMediatorClient.Run();
+
     }
 }
