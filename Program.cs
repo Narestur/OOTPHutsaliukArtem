@@ -577,7 +577,7 @@ class TerminalScaleExpression : AbstractExpression
     }
 }
 
-class TerminalRotateExpression : AbstractExpression
+    class TerminalRotateExpression : AbstractExpression
 {
     private float angle;
     public TerminalRotateExpression(float angle) => this.angle = angle;
@@ -637,7 +637,7 @@ class InterpreterClient
     }
 }
 
-// Dummy model class
+
 class NModel3D
 {
     public string Name;
