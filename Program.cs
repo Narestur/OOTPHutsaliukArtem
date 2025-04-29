@@ -103,10 +103,14 @@ interface ICloneableModel
 class Model3D : ICloneableModel
 {
     public string Name { get; set; }
+    public float Scale { get; set; }
+    public float Rotation { get; set; }
     
     public Model3D(string name)
     {
         Name = name;
+        Scale = 1.0f;
+        Rotation = 0.0f;
     }
 
     public ICloneableModel Clone()
@@ -118,7 +122,20 @@ class Model3D : ICloneableModel
     {
         Console.WriteLine($"Model: {Name}");
     }
+
+    public ModelState SaveState() => new(Name, Scale, Rotation);
+    public void RestoreState(ModelState state)
+    {
+        Name = state.Name;
+        Scale = state.Scale;
+        Rotation = state.Rotation;
+        Console.WriteLine($"[Restored] Name: {Name}, Scale: {Scale}, Rotation: {Rotation}");
+    }
+
+    public void PrintState() => Console.WriteLine($"[Model State] Name: {Name}, Scale: {Scale}, Rotation: {Rotation}");
 }
+
+
 
 // Builder Pattern
 class Model
@@ -577,7 +594,7 @@ class TerminalScaleExpression : AbstractExpression
     }
 }
 
-    class TerminalRotateExpression : AbstractExpression
+class TerminalRotateExpression : AbstractExpression
 {
     private float angle;
     public TerminalRotateExpression(float angle) => this.angle = angle;
@@ -637,7 +654,7 @@ class InterpreterClient
     }
 }
 
-
+// Dummy model class
 class NModel3D
 {
     public string Name;
@@ -729,6 +746,135 @@ class UIMediatorClient
     }
 }
 
+//--------------------------------------------------------------------------------------------------//
+//--------------------------------------------LR7---------------------------------------------------//
+//--------------------------------------------------------------------------------------------------//
+
+class ModelState
+{
+    public string Name { get; }
+    public float Scale { get; }
+    public float Rotation { get; }
+
+    public ModelState(string name, float scale, float rotation)
+    {
+        Name = name;
+        Scale = scale;
+        Rotation = rotation;
+    }
+}
+
+class StateVault
+{
+    private readonly List<ModelState> _states = new();
+
+    public void SaveState(ModelState state)
+    {
+        _states.Add(state);
+        Console.WriteLine("State saved.");
+    }
+
+    public ModelState GetState(int index)
+    {
+        if (index >= 0 && index < _states.Count) return _states[index];
+        throw new IndexOutOfRangeException("Invalid state index");
+    }
+}
+
+// VISITOR PATTERN
+interface IVisitor
+{
+    void VisitModel3D(Model3D model);
+    void VisitMaterial(Material material);
+}
+
+interface IElement
+{
+    void Accept(IVisitor visitor);
+}
+
+class Material : IElement
+{
+    public string Type { get; set; } = "Standard";
+    public void Accept(IVisitor visitor) => visitor.VisitMaterial(this);
+}
+
+class ExtendedModel3D : Model3D, IElement
+{
+    public List<Material> Materials { get; } = new();
+
+    public ExtendedModel3D(string name) : base(name) { }
+
+    public void Accept(IVisitor visitor)
+    {
+        visitor.VisitModel3D(this);
+        foreach (var mat in Materials)
+            mat.Accept(visitor);
+    }
+}
+
+class PolygonCountVisitor : IVisitor
+{
+    public void VisitModel3D(Model3D model)
+    {
+        Console.WriteLine($"Counting polygons in model '{model.Name}' (mock count: 1024)");
+    }
+
+    public void VisitMaterial(Material material)
+    {
+        Console.WriteLine($"Analyzing material: {material.Type}");
+    }
+}
+
+class ExportVisitor : IVisitor
+{
+    public void VisitModel3D(Model3D model)
+    {
+        Console.WriteLine($"Exporting model '{model.Name}' to FBX");
+    }
+
+    public void VisitMaterial(Material material)
+    {
+        Console.WriteLine($"Embedding material '{material.Type}' in export");
+    }
+}
+
+class MementoVisitorDemo
+{
+    public static void Run()
+    {
+        Console.WriteLine("-- MEMENTO --");
+        var model = new Model3D("BackupModel");
+        var vault = new StateVault();
+
+        model.Scale = 1.5f;
+        model.Rotation = 30f;
+        vault.SaveState(model.SaveState());
+
+        model.Scale = 3.0f;
+        model.Rotation = 90f;
+        model.PrintState();
+
+        model.RestoreState(vault.GetState(0));
+    }
+}
+
+class VisitorDemo
+{
+    public static void Run()
+    {
+        Console.WriteLine("\n-- VISITOR --");
+        var model = new ExtendedModel3D("VisitorModel");
+        model.Materials.Add(new Material());
+        model.Materials.Add(new Material { Type = "Reflective" });
+
+        var polygonVisitor = new PolygonCountVisitor();
+        var exportVisitor = new ExportVisitor();
+
+        model.Accept(polygonVisitor);
+        model.Accept(exportVisitor);
+    }
+}
 
 // Test Program
 class Program
@@ -833,5 +979,7 @@ class Program
         Console.WriteLine("\n-- MEDIATOR --");
         UIMediatorClient.Run();
 
+        MementoVisitorDemo.Run();
+        VisitorDemo.Run();
     }
 }
