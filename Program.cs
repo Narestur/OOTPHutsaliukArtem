@@ -876,6 +876,115 @@ class VisitorDemo
     }
 }
 
+//--------------------------------------------------------------------------------------------------//
+//--------------------------------------------LR8---------------------------------------------------//
+//--------------------------------------------------------------------------------------------------//
+
+// FACADE PATTERN
+class ModelSubsystem
+{
+    public void LoadGeometry(string name) => Console.WriteLine($"Loading geometry for {name}...");
+}
+
+class TextureSubsystem
+{
+    public void LoadTextures(string name) => Console.WriteLine($"Loading textures for {name}...");
+}
+
+class MaterialSubsystem
+{
+    public void LoadMaterials(string name) => Console.WriteLine($"Loading materials for {name}...");
+}
+
+class ModelingFacade
+{
+    private ModelSubsystem modelSubsystem = new();
+    private TextureSubsystem textureSubsystem = new();
+    private MaterialSubsystem materialSubsystem = new();
+
+    public void ImportModel(string name)
+    {
+        modelSubsystem.LoadGeometry(name);
+        textureSubsystem.LoadTextures(name);
+        materialSubsystem.LoadMaterials(name);
+        Console.WriteLine($"Model {name} imported successfully.\n");
+    }
+}
+
+// PROXY PATTERN (REMOTE RENDERING)
+interface IRemoteModel
+{
+    void Render();
+}
+
+class RemoteModel : IRemoteModel
+{
+    private string modelName;
+    public RemoteModel(string name) => modelName = name;
+
+    public void Render() => Console.WriteLine($"[Remote Render] Rendering model {modelName} on remote server...");
+}
+
+class RemoteModelProxy : IRemoteModel
+{
+    private string modelName;
+    private RemoteModel realModel;
+
+    public RemoteModelProxy(string name) => modelName = name;
+
+    public void Render()
+    {
+        if (realModel == null)
+        {
+            Console.WriteLine("Initializing remote connection...");
+            realModel = new RemoteModel(modelName);
+        }
+        realModel.Render();
+    }
+}
+
+// BRIDGE PATTERN
+interface IRenderEngine
+{
+    void RenderModel(string modelName);
+}
+
+class OpenGLRenderer : IRenderEngine
+{
+    public void RenderModel(string modelName) => Console.WriteLine($"Rendering {modelName} using OpenGL.");
+}
+
+class DirectXRenderer : IRenderEngine
+{
+    public void RenderModel(string modelName) => Console.WriteLine($"Rendering {modelName} using DirectX.");
+}
+
+abstract class RenderableModel
+{
+    protected IRenderEngine renderEngine;
+    protected string name;
+
+    public RenderableModel(string name, IRenderEngine engine)
+    {
+        this.name = name;
+        this.renderEngine = engine;
+    }
+
+    public abstract void Render();
+}
+
+class MeshModel : RenderableModel
+{
+    public MeshModel(string name, IRenderEngine engine) : base(name, engine) { }
+    public override void Render() => renderEngine.RenderModel(name);
+}
+
+class NURBSModel : RenderableModel
+{
+    public NURBSModel(string name, IRenderEngine engine) : base(name, engine) { }
+    public override void Render() => renderEngine.RenderModel(name);
+}
+
 // Test Program
 class Program
 {
@@ -981,5 +1090,20 @@ class Program
 
         MementoVisitorDemo.Run();
         VisitorDemo.Run();
+
+        Console.WriteLine("-- FACADE --");
+        var facade = new ModelingFacade();
+        facade.ImportModel("Dragon");
+
+        Console.WriteLine("-- PROXY --");
+        IRemoteModel remote = new RemoteModelProxy("Spaceship");
+        remote.Render();
+        remote.Render();
+
+        Console.WriteLine("-- BRIDGE --");
+        RenderableModel meshe = new MeshModel("Character", new OpenGLRenderer());
+        RenderableModel nurbs = new NURBSModel("Car", new DirectXRenderer());
+        meshe.Render();
+        nurbs.Render();
     }
 }
